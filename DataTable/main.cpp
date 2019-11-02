@@ -9,7 +9,38 @@
 
 using namespace std;
 
+//class Value : public any
+//{
+//public:
+//    Value(any value) : any(value) {}
+//    Value() = default;
 
+
+//    bool operator == (const Value other)
+//    {
+//        if(type() != other.type())
+//        {
+//            return false;
+//        }
+
+//        if(type() == typeid(int))
+//        {
+//            return any_cast<int>(*this) == any_cast<int>(other);
+//        }
+
+//        if(type() == typeid(const char*))
+//        {
+//            return string(any_cast<const char*>(*this)) == string(any_cast<const char*>(other));
+//        }
+
+//        if(type() == typeid(string))
+//        {
+//            return any_cast<string>(*this) == any_cast<string>(other);
+//        }
+
+//        return false;
+//    }
+//};
 
 class DataTable
 {
@@ -45,6 +76,10 @@ public:
         return data_.end();
     }
 
+    Row& operator[](size_t rowIndex)
+    {
+        return data_[rowIndex];
+    }
 
 
 //    Row& operator[](tuple value);
@@ -62,8 +97,8 @@ protected:
 
     unordered_map<int, string> indexToColumn_;
     unordered_map<string, int> columnToIndex_;
-    uint columnSize_ = 0;
-    uint rowSize_ = 0;
+    size_t columnSize_ = 0;
+    size_t rowSize_ = 0;
 
     vector<Row> data_;
 };
@@ -89,6 +124,8 @@ optional<string> anyToString(any value)
     return {};
 }
 
+
+
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
@@ -98,6 +135,7 @@ int main(int argc, char **argv)
 
 TEST (TestUnitFill, Simple)
 {
+
     DataTable dt{"col1", "col2"};
     dt.fill({{1, "aa"}, {2, "bb"}});
 
@@ -111,7 +149,8 @@ TEST (TestUnitFill, Simple)
         cout << row << endl;
     }
 
-//    EXPECT_EQ(dt[1], (DataTable::Row{1, "aa"}));
+    DataTable::Row r{1, "aa"};
+    EXPECT_EQ(dt[0], r);
 
 //    EXPECT_EQ(dt[1]["col1"], 1);
 //    EXPECT_EQ(dt[2]["col2"], "bb");
