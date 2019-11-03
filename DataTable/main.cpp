@@ -9,38 +9,44 @@
 
 using namespace std;
 
-//class Value : public any
+class Value : public any
+{
+public:
+    Value(any val) : any(move(val)) {}
+};
 //{
 //public:
 //    Value(any value) : any(value) {}
 //    Value() = default;
 
+namespace std {
 
-//    bool operator == (const Value other)
-//    {
-//        if(type() != other.type())
-//        {
-//            return false;
-//        }
 
-//        if(type() == typeid(int))
-//        {
-//            return any_cast<int>(*this) == any_cast<int>(other);
-//        }
+bool operator == (any left, any right)
+{
+    if(left.type() != right.type())
+    {
+        return false;
+    }
 
-//        if(type() == typeid(const char*))
-//        {
-//            return string(any_cast<const char*>(*this)) == string(any_cast<const char*>(other));
-//        }
+    if(left.type() == typeid(int))
+    {
+        return any_cast<int>(left) == any_cast<int>(right);
+    }
 
-//        if(type() == typeid(string))
-//        {
-//            return any_cast<string>(*this) == any_cast<string>(other);
-//        }
+    if(left.type() == typeid(const char*))
+    {
+        return string(any_cast<const char*>(left)) == string(any_cast<const char*>(right));
+    }
 
-//        return false;
-//    }
-//};
+    if(left.type() == typeid(string))
+    {
+        return any_cast<string>(left) == any_cast<string>(right);
+    }
+
+    return false;
+}
+}
 
 class DataTable
 {
@@ -81,7 +87,6 @@ public:
         return data_[rowIndex];
     }
 
-
 //    Row& operator[](tuple value);
 
 protected:
@@ -90,13 +95,11 @@ protected:
         for(string column : columns)
         {
             indexToColumn_.emplace(columnSize_, column);
-            columnToIndex_.emplace(column, columnSize_);
             columnSize_++;
         }
     }
 
     unordered_map<int, string> indexToColumn_;
-    unordered_map<string, int> columnToIndex_;
     size_t columnSize_ = 0;
     size_t rowSize_ = 0;
 
@@ -120,10 +123,9 @@ optional<string> anyToString(any value)
         return any_cast<string>(value);
     }
 
-    cout << "not supported " << value.type().name() << endl;
+    cout << "not supported " << value.type().name() << " " << endl;
     return {};
 }
-
 
 
 int main(int argc, char **argv)
@@ -132,10 +134,8 @@ int main(int argc, char **argv)
     return RUN_ALL_TESTS();
 }
 
-
 TEST (TestUnitFill, Simple)
 {
-
     DataTable dt{"col1", "col2"};
     dt.fill({{1, "aa"}, {2, "bb"}});
 
