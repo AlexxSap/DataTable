@@ -11,41 +11,54 @@
 
 using namespace std;
 
+optional<string> anyToString(any value);
+
 class DataTable
 {
 public:
-    class Value : public any
+    class Value
     {
     public:
         Value(any val);
         static bool equals(const Value &left, const Value &right);
         bool operator == (const Value& other);
+        const type_info& type() const;
+        const any& value() const;
+    private:
+        any value_;
+    };
+
+    class Column
+    {
+        friend vector<any> operator+(const DataTable::Column&,
+                                     const DataTable::Column&);
+    public:
+        Column(DataTable* owner,
+               const size_t index);
+        void operator= (any value);
+        void operator= (vector<any> columnData);
+        void operator= (const Column& other);
+        size_t index() const;
+        vector<any> data() const;
+
+    private:
+        DataTable *owner_ = nullptr;
+        size_t index_;
     };
 
     class Row : public vector<any>
     {
     public:
         Row() = default;
+        explicit Row(DataTable* owner);
+        explicit Row(vector<any> other);
         Row(initializer_list<any> values);
         bool operator==(Row other) const;
         Value operator[](string columnName) const;
+        Value operator[](const Column& column) const;
         any& operator[](size_t index);
-        Row& setNames(unordered_map<string, size_t> *columnToIndex);
-    private:
-        unordered_map<string, size_t> *columnToIndex_ = nullptr;
-    };
-
-    class Column : public vector<any>
-    {
-    public:
-        Column(DataTable* owner,
-               const size_t index);
-        void operator= (any value);
-
     private:
         DataTable *owner_ = nullptr;
-        size_t index_ = 0;
-
     };
 
 public:
@@ -62,16 +75,16 @@ public:
     inline const_iterator cbegin() const;
     inline const_iterator cend() const;
 
-    Row operator[](size_t rowIndex);
+    Row& operator[](size_t rowIndex);
     Column operator[](string columnName);
 
     string toString() const;
+    size_t rowCount() const;
 
 //    Row& operator[](tuple value);
-
 protected:
     void addColumns(initializer_list<const char*> columns);
-    optional<string> anyToString(any value) const;
+    void addColumn(string column);
 
     unordered_map<size_t, string> indexToColumn_;
     unordered_map<string, size_t> columnToIndex_;
@@ -81,6 +94,8 @@ protected:
     vector<Row> data_;
 };
 
+vector<any> operator+(const DataTable::Column& left, const DataTable::Column& right);
+DataTable::Value operator+(const DataTable::Value& left, const DataTable::Value& right);
 bool operator == (DataTable::Value left, DataTable::Value right);
 
 #endif // DATATABLE_H

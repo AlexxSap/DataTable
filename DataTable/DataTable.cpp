@@ -1,6 +1,38 @@
 #include "DataTable.h"
 
 
+optional<string> anyToString(any value)
+{
+    if(value.type() == typeid(int))
+    {
+        return to_string(any_cast<int>(value));
+    }
+
+    if(value.type() == typeid(const char*))
+    {
+        return string(any_cast<const char*>(value));
+    }
+
+    if(value.type() == typeid(string))
+    {
+        return any_cast<string>(value);
+    }
+
+    cout << "not supported " << value.type().name() << " " << endl;
+    return {};
+}
+
+DataTable::Row::Row(DataTable *owner)
+    : owner_(owner)
+{
+
+}
+
+DataTable::Row::Row(vector<any> other)
+    : vector<any>(move(other))
+{
+
+}
 
 DataTable::Row::Row(initializer_list<any> values)
     : vector<any>(move(values))
@@ -19,18 +51,17 @@ bool DataTable::Row::operator==(DataTable::Row other) const
 
 DataTable::Value DataTable::Row::operator[](string columnName) const
 {
-    return vector<any>::operator[](columnToIndex_->at(columnName));
+    return vector<any>::operator[](owner_->columnToIndex_.at(columnName));
+}
+
+DataTable::Value DataTable::Row::operator[](const DataTable::Column &column) const
+{
+    return vector<any>::operator[](column.index());
 }
 
 any &DataTable::Row::operator[](size_t index)
 {
     return vector<any>::operator[](index);
-}
-
-DataTable::Row &DataTable::Row::setNames(unordered_map<string, size_t> *columnToIndex)
-{
-    columnToIndex_ = columnToIndex;
-    return *this;
 }
 
 DataTable::DataTable(initializer_list<const char *> columns)
@@ -45,7 +76,7 @@ void DataTable::fill(vector<DataTable::Row> data)
 
 void DataTable::addRow(DataTable::Row row)
 {
-    data_.push_back(Row());
+    data_.push_back(Row(this));
     for_each(row.begin(), row.end(), [r = &data_[rowSize_]](auto value){r->push_back(value);});
     rowSize_++;
 }
@@ -70,20 +101,31 @@ DataTable::const_iterator DataTable::cend() const
     return data_.cend();
 }
 
-DataTable::Row DataTable::operator[](size_t rowIndex)
+DataTable::Row& DataTable::operator[](size_t rowIndex)
 {
-    return data_[rowIndex].setNames(&columnToIndex_);
+    return data_[rowIndex];
 }
 
 DataTable::Column DataTable::operator[](string columnName)
 {
-    const size_t index = columnToIndex_.at(columnName);
-    return DataTable::Column(this, index);
+    if(auto iter = columnToIndex_.find(columnName); iter != columnToIndex_.end())
+    {
+        return DataTable::Column(this, iter->second);
+    }
+
+    addColumn(columnName);
+    return DataTable::Column(this, columnSize_ - 1);
 }
 
 string DataTable::toString() const
 {
     string result;
+    for(size_t col = 0; col < columnSize_; ++col)
+    {
+        result += " '" + indexToColumn_.at(col) + "' ";
+    }
+    result += "\n";
+
     for(auto rowIter = cbegin(); rowIter != cend(); ++rowIter)
     {
         string row;
@@ -91,41 +133,35 @@ string DataTable::toString() const
         {
             row += " '" + anyToString(value).value_or("") + "' ";
         }
-        result += "{" + row + "} ";
+        result += "{" + row + "} \n";
     }
 
     return result;
+}
+
+size_t DataTable::rowCount() const
+{
+    return rowSize_;
 }
 
 void DataTable::addColumns(initializer_list<const char *> columns)
 {
     for(string column : columns)
     {
-        indexToColumn_.emplace(columnSize_, column);
-        columnToIndex_.emplace(column, columnSize_);
-        columnSize_++;
+        addColumn(column);
     }
 }
 
-optional<string> DataTable::anyToString(any value) const
+void DataTable::addColumn(string column)
 {
-    if(value.type() == typeid(int))
-    {
-        return to_string(any_cast<int>(value));
-    }
+    indexToColumn_.emplace(columnSize_, column);
+    columnToIndex_.emplace(column, columnSize_);
 
-    if(value.type() == typeid(const char*))
+    for(auto &row : data_)
     {
-        return string(any_cast<const char*>(value));
+        row.emplace_back(any(0));
     }
-
-    if(value.type() == typeid(string))
-    {
-        return any_cast<string>(value);
-    }
-
-    cout << "not supported " << value.type().name() << " " << endl;
-    return {};
+    columnSize_++;
 }
 
 bool operator ==(DataTable::Value left, DataTable::Value right)
@@ -133,9 +169,12 @@ bool operator ==(DataTable::Value left, DataTable::Value right)
     return DataTable::Value::equals(left, right);
 }
 
-DataTable::Value::Value(any val) : any(move(val)) {}
+DataTable::Value::Value(any val)
+    : value_(move(val))
+{}
 
-bool DataTable::Value::equals(const DataTable::Value &left, const DataTable::Value &right)
+bool DataTable::Value::equals(const DataTable::Value &left,
+                              const DataTable::Value &right)
 {
     if(left.type() != right.type())
     {
@@ -144,17 +183,17 @@ bool DataTable::Value::equals(const DataTable::Value &left, const DataTable::Val
 
     if(left.type() == typeid(int))
     {
-        return any_cast<int>(left) == any_cast<int>(right);
+        return any_cast<int>(left.value()) == any_cast<int>(right.value());
     }
 
     if(left.type() == typeid(const char*))
     {
-        return string(any_cast<const char*>(left)) == string(any_cast<const char*>(right));
+        return string(any_cast<const char*>(left.value())) == string(any_cast<const char*>(right.value()));
     }
 
     if(left.type() == typeid(string))
     {
-        return any_cast<string>(left) == any_cast<string>(right);
+        return any_cast<string>(left.value()) == any_cast<string>(right.value());
     }
 
     return false;
@@ -165,6 +204,15 @@ bool DataTable::Value::operator ==(const DataTable::Value &other)
     return equals(*this, other);
 }
 
+const type_info& DataTable::Value::type() const
+{
+    return value_.type();
+}
+
+const any &DataTable::Value::value() const
+{
+    return value_;
+}
 
 DataTable::Column::Column(DataTable *owner,
                           const size_t index)
@@ -182,4 +230,76 @@ void DataTable::Column::operator=(any value)
     {
         row[index] = value;
     });
+}
+
+void DataTable::Column::operator=(vector<any> columnData)
+{
+    for(size_t row = 0; row < owner_->rowCount(); ++row)
+    {
+        owner_->operator[](row)[index_] = columnData[row];
+    }
+}
+
+void DataTable::Column::operator=(const DataTable::Column &other)
+{
+    this->operator=(other.data());
+}
+
+size_t DataTable::Column::index() const
+{
+    return index_;
+}
+
+vector<any> DataTable::Column::data() const
+{
+    vector<any> d;
+    d.reserve(owner_->rowCount());
+    for(size_t row = 0; row < owner_->rowCount(); ++row)
+    {
+        d.emplace_back(owner_->operator[](row)[index_]);
+    }
+
+    return d;
+}
+
+vector<any> operator+(const DataTable::Column &left,
+                      const DataTable::Column &right)
+{
+    assert(left.owner_ == right.owner_);
+
+    vector<any> result;
+    DataTable* owner = left.owner_;
+    result.reserve(owner->rowCount());
+    result.resize(owner->rowCount());
+    for(size_t row = 0; row < owner->rowCount(); ++row)
+    {
+        result[row] = (owner->operator[](row)[left]
+                + owner->operator[](row)[right]).value();
+    }
+
+    return result;
+}
+
+DataTable::Value operator+(const DataTable::Value &left,
+                           const DataTable::Value &right)
+{
+    assert(left.type() == right.type());
+
+    if(left.type() == typeid(int))
+    {
+        return DataTable::Value(any_cast<int>(left.value())
+                                + any_cast<int>(right.value()));
+
+    }
+    else if(left.type() == typeid(const char*))
+    {
+        return DataTable::Value((string(any_cast<const char*>(left.value()))
+                                 + string(any_cast<const char*>(right.value()))).c_str());
+    }
+    else if(left.type() == typeid(string))
+    {
+         return DataTable::Value(any_cast<string>(left.value()) + any_cast<string>(right.value()));
+    }
+
+    return DataTable::Value(0);
 }
