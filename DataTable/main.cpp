@@ -28,4 +28,22 @@ TEST (TestUnitFill, Simple)
     EXPECT_EQ(dt[0]["col1"], DataTable::Value(1));
 }
 
+TEST(TestUnitFill, SetDirectData)
+{
+    DataTable dt{"col1", "col2"};
+    dt.fill({{1, "aa"}, {2, "bb"}});
+
+    dt["col1"] = 3;
+
+    {
+        DataTable::Row r{3, "aa"};
+        EXPECT_EQ(dt[0], r);
+    }
+
+    {
+        DataTable::Row r{3, "bb"};
+        EXPECT_EQ(dt[1], r);
+    }
+}
+
 

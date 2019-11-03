@@ -22,6 +22,11 @@ DataTable::Value DataTable::Row::operator[](string columnName) const
     return vector<any>::operator[](columnToIndex_->at(columnName));
 }
 
+any &DataTable::Row::operator[](size_t index)
+{
+    return vector<any>::operator[](index);
+}
+
 DataTable::Row &DataTable::Row::setNames(unordered_map<string, size_t> *columnToIndex)
 {
     columnToIndex_ = columnToIndex;
@@ -68,6 +73,12 @@ DataTable::const_iterator DataTable::cend() const
 DataTable::Row DataTable::operator[](size_t rowIndex)
 {
     return data_[rowIndex].setNames(&columnToIndex_);
+}
+
+DataTable::Column DataTable::operator[](string columnName)
+{
+    const size_t index = columnToIndex_.at(columnName);
+    return DataTable::Column(this, index);
 }
 
 string DataTable::toString() const
@@ -154,7 +165,21 @@ bool DataTable::Value::operator ==(const DataTable::Value &other)
     return equals(*this, other);
 }
 
-//bool operator ==(const any left, const any right)
-//{
-//    return DataTable::Value::equals(left, right);
-//}
+
+DataTable::Column::Column(DataTable *owner,
+                          const size_t index)
+    : owner_(owner),
+      index_(index)
+{
+
+}
+
+void DataTable::Column::operator=(any value)
+{
+    for_each(owner_->begin(),
+             owner_->end(),
+             [index = index_, &value](Row &row)
+    {
+        row[index] = value;
+    });
+}

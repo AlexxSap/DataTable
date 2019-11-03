@@ -29,9 +29,23 @@ public:
         Row(initializer_list<any> values);
         bool operator==(Row other) const;
         Value operator[](string columnName) const;
+        any& operator[](size_t index);
         Row& setNames(unordered_map<string, size_t> *columnToIndex);
     private:
         unordered_map<string, size_t> *columnToIndex_ = nullptr;
+    };
+
+    class Column : public vector<any>
+    {
+    public:
+        Column(DataTable* owner,
+               const size_t index);
+        void operator= (any value);
+
+    private:
+        DataTable *owner_ = nullptr;
+        size_t index_ = 0;
+
     };
 
 public:
@@ -49,6 +63,7 @@ public:
     inline const_iterator cend() const;
 
     Row operator[](size_t rowIndex);
+    Column operator[](string columnName);
 
     string toString() const;
 
