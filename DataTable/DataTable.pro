@@ -6,4 +6,8 @@ CONFIG -= qt
 LIBS += -pthread -lgtest
 
 SOURCES += \
+        DataTable.cpp \
         main.cpp
+
+HEADERS += \
+    DataTable.h
