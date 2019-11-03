@@ -8,8 +8,13 @@ DataTable::Row::Row(initializer_list<any> values)
 
 bool DataTable::Row::operator==(DataTable::Row other) const
 {
-    return std::equal(cbegin(), cend(), other.cbegin(), [](const Value &left, const Value &right){ return Value::equals(left, right);});
-   /// return static_cast<vector<any>>(*this) == static_cast<vector<any>>(other);
+    return std::equal(cbegin(),
+                      cend(),
+                      other.cbegin(),
+                      [](const Value &left, const Value &right)
+    {
+        return Value::equals(left, right);
+    });
 }
 
 DataTable::Value DataTable::Row::operator[](string columnName) const
@@ -38,6 +43,26 @@ void DataTable::addRow(DataTable::Row row)
     data_.push_back(Row());
     for_each(row.begin(), row.end(), [r = &data_[rowSize_]](auto value){r->push_back(value);});
     rowSize_++;
+}
+
+DataTable::iterator DataTable::begin()
+{
+    return data_.begin();
+}
+
+DataTable::iterator DataTable::end()
+{
+    return data_.end();
+}
+
+DataTable::const_iterator DataTable::cbegin() const
+{
+    return data_.cbegin();
+}
+
+DataTable::const_iterator DataTable::cend() const
+{
+    return data_.cend();
 }
 
 DataTable::Row DataTable::operator[](size_t rowIndex)
@@ -96,3 +121,40 @@ bool operator ==(DataTable::Value left, DataTable::Value right)
 {
     return DataTable::Value::equals(left, right);
 }
+
+DataTable::Value::Value(any val) : any(move(val)) {}
+
+bool DataTable::Value::equals(const DataTable::Value &left, const DataTable::Value &right)
+{
+    if(left.type() != right.type())
+    {
+        return false;
+    }
+
+    if(left.type() == typeid(int))
+    {
+        return any_cast<int>(left) == any_cast<int>(right);
+    }
+
+    if(left.type() == typeid(const char*))
+    {
+        return string(any_cast<const char*>(left)) == string(any_cast<const char*>(right));
+    }
+
+    if(left.type() == typeid(string))
+    {
+        return any_cast<string>(left) == any_cast<string>(right);
+    }
+
+    return false;
+}
+
+bool DataTable::Value::operator ==(const DataTable::Value &other)
+{
+    return equals(*this, other);
+}
+
+//bool operator ==(const any left, const any right)
+//{
+//    return DataTable::Value::equals(left, right);
+//}
