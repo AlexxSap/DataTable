@@ -164,10 +164,6 @@ void DataTable::addColumn(string column)
     columnSize_++;
 }
 
-bool operator ==(DataTable::Value left, DataTable::Value right)
-{
-    return DataTable::Value::equals(left, right);
-}
 
 DataTable::Value::Value(any val)
     : value_(move(val))
@@ -199,9 +195,32 @@ bool DataTable::Value::equals(const DataTable::Value &left,
     return false;
 }
 
-bool DataTable::Value::operator ==(const DataTable::Value &other)
+bool DataTable::Value::operator ==(const DataTable::Value &other) const
 {
     return equals(*this, other);
+}
+
+DataTable::Value DataTable::Value::operator+(const DataTable::Value &other) const
+{
+    assert(type() == other.type());
+
+    if(type() == typeid(int))
+    {
+        return DataTable::Value(any_cast<int>(value())
+                                + any_cast<int>(other.value()));
+
+    }
+    else if(type() == typeid(const char*))
+    {
+        return DataTable::Value((string(any_cast<const char*>(value()))
+                                 + string(any_cast<const char*>(other.value()))).c_str());
+    }
+    else if(type() == typeid(string))
+    {
+         return DataTable::Value(any_cast<string>(value()) + any_cast<string>(other.value()));
+    }
+
+    return DataTable::Value(0);
 }
 
 const type_info& DataTable::Value::type() const
@@ -245,6 +264,22 @@ void DataTable::Column::operator=(const DataTable::Column &other)
     this->operator=(other.data());
 }
 
+vector<any> DataTable::Column::operator+(const DataTable::Column &right) const
+{
+    assert(owner_ == right.owner_);
+
+    vector<any> result;
+    result.reserve(owner_->rowCount());
+    result.resize(owner_->rowCount());
+    for(size_t row = 0; row < owner_->rowCount(); ++row)
+    {
+        result[row] = (owner_->operator[](row)[*this]
+                + owner_->operator[](row)[right]).value();
+    }
+
+    return result;
+}
+
 size_t DataTable::Column::index() const
 {
     return index_;
@@ -262,44 +297,3 @@ vector<any> DataTable::Column::data() const
     return d;
 }
 
-vector<any> operator+(const DataTable::Column &left,
-                      const DataTable::Column &right)
-{
-    assert(left.owner_ == right.owner_);
-
-    vector<any> result;
-    DataTable* owner = left.owner_;
-    result.reserve(owner->rowCount());
-    result.resize(owner->rowCount());
-    for(size_t row = 0; row < owner->rowCount(); ++row)
-    {
-        result[row] = (owner->operator[](row)[left]
-                + owner->operator[](row)[right]).value();
-    }
-
-    return result;
-}
-
-DataTable::Value operator+(const DataTable::Value &left,
-                           const DataTable::Value &right)
-{
-    assert(left.type() == right.type());
-
-    if(left.type() == typeid(int))
-    {
-        return DataTable::Value(any_cast<int>(left.value())
-                                + any_cast<int>(right.value()));
-
-    }
-    else if(left.type() == typeid(const char*))
-    {
-        return DataTable::Value((string(any_cast<const char*>(left.value()))
-                                 + string(any_cast<const char*>(right.value()))).c_str());
-    }
-    else if(left.type() == typeid(string))
-    {
-         return DataTable::Value(any_cast<string>(left.value()) + any_cast<string>(right.value()));
-    }
-
-    return DataTable::Value(0);
-}

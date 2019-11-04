@@ -21,7 +21,8 @@ public:
     public:
         Value(any val);
         static bool equals(const Value &left, const Value &right);
-        bool operator == (const Value& other);
+        bool operator == (const Value& other) const;
+        Value operator+(const DataTable::Value& other) const;
         const type_info& type() const;
         const any& value() const;
     private:
@@ -30,14 +31,13 @@ public:
 
     class Column
     {
-        friend vector<any> operator+(const DataTable::Column&,
-                                     const DataTable::Column&);
     public:
         Column(DataTable* owner,
                const size_t index);
         void operator= (any value);
         void operator= (vector<any> columnData);
         void operator= (const Column& other);
+        vector<any> operator+(const DataTable::Column& right) const;
         size_t index() const;
         vector<any> data() const;
 
@@ -81,7 +81,6 @@ public:
     string toString() const;
     size_t rowCount() const;
 
-//    Row& operator[](tuple value);
 protected:
     void addColumns(initializer_list<const char*> columns);
     void addColumn(string column);
@@ -93,9 +92,5 @@ protected:
 
     vector<Row> data_;
 };
-
-vector<any> operator+(const DataTable::Column& left, const DataTable::Column& right);
-DataTable::Value operator+(const DataTable::Value& left, const DataTable::Value& right);
-bool operator == (DataTable::Value left, DataTable::Value right);
 
 #endif // DATATABLE_H
