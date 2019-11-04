@@ -11,8 +11,6 @@
 
 using namespace std;
 
-optional<string> anyToString(any value);
-
 class DataTable
 {
 public:
@@ -25,7 +23,9 @@ public:
         Value operator+(const DataTable::Value& other) const;
         const type_info& type() const;
         const any& value() const;
+        string toString() const;
     private:
+        any convertChar(any value);
         any value_;
     };
 

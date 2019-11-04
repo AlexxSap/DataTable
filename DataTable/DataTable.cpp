@@ -1,27 +1,6 @@
 #include "DataTable.h"
 
 
-optional<string> anyToString(any value)
-{
-    if(value.type() == typeid(int))
-    {
-        return to_string(any_cast<int>(value));
-    }
-
-    if(value.type() == typeid(const char*))
-    {
-        return string(any_cast<const char*>(value));
-    }
-
-    if(value.type() == typeid(string))
-    {
-        return any_cast<string>(value);
-    }
-
-    cout << "not supported " << value.type().name() << " " << endl;
-    return {};
-}
-
 DataTable::Row::Row(DataTable *owner)
     : owner_(owner)
 {
@@ -131,7 +110,7 @@ string DataTable::toString() const
         string row;
         for(auto value : *rowIter)
         {
-            row += " '" + anyToString(value).value_or("") + "' ";
+            row += " '" + Value(value).toString() + "' ";
         }
         result += "{" + row + "} \n";
     }
@@ -166,7 +145,7 @@ void DataTable::addColumn(string column)
 
 
 DataTable::Value::Value(any val)
-    : value_(move(val))
+    : value_(move(convertChar(move(val))))
 {}
 
 bool DataTable::Value::equals(const DataTable::Value &left,
@@ -180,11 +159,6 @@ bool DataTable::Value::equals(const DataTable::Value &left,
     if(left.type() == typeid(int))
     {
         return any_cast<int>(left.value()) == any_cast<int>(right.value());
-    }
-
-    if(left.type() == typeid(const char*))
-    {
-        return string(any_cast<const char*>(left.value())) == string(any_cast<const char*>(right.value()));
     }
 
     if(left.type() == typeid(string))
@@ -210,11 +184,6 @@ DataTable::Value DataTable::Value::operator+(const DataTable::Value &other) cons
                                 + any_cast<int>(other.value()));
 
     }
-    else if(type() == typeid(const char*))
-    {
-        return DataTable::Value((string(any_cast<const char*>(value()))
-                                 + string(any_cast<const char*>(other.value()))).c_str());
-    }
     else if(type() == typeid(string))
     {
          return DataTable::Value(any_cast<string>(value()) + any_cast<string>(other.value()));
@@ -231,6 +200,31 @@ const type_info& DataTable::Value::type() const
 const any &DataTable::Value::value() const
 {
     return value_;
+}
+
+string DataTable::Value::toString() const
+{
+    if(type() == typeid(int))
+    {
+        return to_string(any_cast<int>(value_));
+    }
+    else if(type() == typeid(string))
+    {
+        return any_cast<string>(value_);
+    }
+
+    cout << "not supported " << value_.type().name() << " " << endl;
+    return string();
+}
+
+any DataTable::Value::convertChar(any value)
+{
+    if(value.type() == typeid(const char*))
+    {
+        return any(string(any_cast<const char*>(value)));
+    }
+
+    return value;
 }
 
 DataTable::Column::Column(DataTable *owner,
