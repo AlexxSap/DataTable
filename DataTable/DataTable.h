@@ -46,7 +46,7 @@ public:
     {
     public:
         Column(DataTable* owner,
-               const size_t index);
+               size_t index);
         void operator= (any value);
         void operator= (vector<any> columnData);
         void operator= (const Column& other);
@@ -59,36 +59,36 @@ public:
         size_t index_;
     };
 
-    class Row : public vector<any>
+    class Row
     {
     public:
-        Row() = default;
-        explicit Row(DataTable* owner);
-        explicit Row(vector<any> other);
-        Row(initializer_list<any> values);
+        explicit Row(DataTable* owner,
+                     size_t index);
         bool operator==(Row other) const;
+        bool operator==(const vector<any>& other) const;
         Value operator[](string columnName) const;
         Value operator[](const Column& column) const;
         any& operator[](size_t index);
     private:
         DataTable *owner_ = nullptr;
+        size_t index_;
     };
 
 public:
     explicit DataTable(initializer_list<const char*> columns);
 
-    void fill(vector<Row> data);
-    void addRow(Row row);
+    void fill(vector<vector<any>> data);
+    void addRow(vector<any> row);
 
-    using iterator = vector<Row>::iterator;
+    using iterator = vector<vector<any>>::iterator;
     iterator begin();
     iterator end();
 
-    using const_iterator = vector<Row>::const_iterator;
+    using const_iterator = vector<vector<any>>::const_iterator;
     inline const_iterator cbegin() const;
     inline const_iterator cend() const;
 
-    Row& operator[](size_t rowIndex);
+    Row operator[](size_t rowIndex);
     Column operator[](string columnName);
 
     string toString() const;
@@ -103,6 +103,6 @@ protected:
     size_t columnSize_ = 0;
     size_t rowSize_ = 0;
 
-    vector<Row> data_;
+    vector<vector<any>> data_;
 };
 

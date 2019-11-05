@@ -1,26 +1,24 @@
 #include "DataTable.h"
 
 
-DataTable::Row::Row(DataTable *owner)
-    : owner_(owner)
+DataTable::Row::Row(DataTable *owner,
+                    size_t index)
+    : owner_(owner),
+      index_(index)
 {
 
 }
-
-DataTable::Row::Row(vector<any> other)
-    : vector<any>(move(other))
-{
-
-}
-
-DataTable::Row::Row(initializer_list<any> values)
-    : vector<any>(move(values))
-{}
 
 bool DataTable::Row::operator==(DataTable::Row other) const
 {
-    return std::equal(cbegin(),
-                      cend(),
+    return owner_ == other.owner_ && index_ == other.index_;
+}
+
+bool DataTable::Row::operator==(const vector<any> &other) const
+{
+    vector<any>& thisRow = owner_->data_[index_];
+    return std::equal(thisRow.cbegin(),
+                      thisRow.cend(),
                       other.cbegin(),
                       [](const Value &left, const Value &right)
     {
@@ -30,17 +28,17 @@ bool DataTable::Row::operator==(DataTable::Row other) const
 
 DataTable::Value DataTable::Row::operator[](string columnName) const
 {
-    return vector<any>::operator[](owner_->columnToIndex_.at(columnName));
+    return owner_->data_[index_][owner_->columnToIndex_.at(columnName)];
 }
 
 DataTable::Value DataTable::Row::operator[](const DataTable::Column &column) const
 {
-    return vector<any>::operator[](column.index());
+    return owner_->data_[index_][column.index()];
 }
 
 any &DataTable::Row::operator[](size_t index)
 {
-    return vector<any>::operator[](index);
+    return owner_->data_[index_][index];
 }
 
 DataTable::DataTable(initializer_list<const char *> columns)
@@ -48,14 +46,14 @@ DataTable::DataTable(initializer_list<const char *> columns)
     addColumns(move(columns));
 }
 
-void DataTable::fill(vector<DataTable::Row> data)
+void DataTable::fill(vector<vector<any> > data)
 {
     for_each(data.begin(), data.end(), [this](auto row){ addRow(row);});
 }
 
-void DataTable::addRow(DataTable::Row row)
+void DataTable::addRow(vector<any> row)
 {
-    data_.push_back(Row(this));
+    data_.push_back(vector<any>());
     for_each(row.begin(), row.end(), [r = &data_[rowSize_]](auto value){r->push_back(value);});
     rowSize_++;
 }
@@ -80,9 +78,9 @@ DataTable::const_iterator DataTable::cend() const
     return data_.cend();
 }
 
-DataTable::Row& DataTable::operator[](size_t rowIndex)
+DataTable::Row DataTable::operator[](size_t rowIndex)
 {
-    return data_[rowIndex];
+    return DataTable::Row(this, rowIndex);
 }
 
 DataTable::Column DataTable::operator[](string columnName)
@@ -191,7 +189,6 @@ string DataTable::Value::toString() const
         return val.value();
     }
 
-
     cout << "not supported " << value_.type().name() << " " << endl;
     return string();
 }
@@ -207,7 +204,7 @@ any DataTable::Value::convertChar(any value)
 }
 
 DataTable::Column::Column(DataTable *owner,
-                          const size_t index)
+                          size_t index)
     : owner_(owner),
       index_(index)
 {
@@ -218,7 +215,7 @@ void DataTable::Column::operator=(any value)
 {
     for_each(owner_->begin(),
              owner_->end(),
-             [index = index_, &value](Row &row)
+             [index = index_, &value](vector<any> &row)
     {
         row[index] = value;
     });

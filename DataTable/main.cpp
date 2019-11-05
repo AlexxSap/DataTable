@@ -16,12 +16,12 @@ TEST (TestUnitFill, Simple)
     dt.fill({{1, "aa"}, {2, "bb"}});
 
     {
-        const DataTable::Row r{1, "aa"};
+        const vector<any> r{1, "aa"};
         EXPECT_EQ(dt[0], r);
     }
 
     {
-        const DataTable::Row r{2, "bb"};
+        const vector<any> r{2, "bb"};
         EXPECT_EQ(dt[1], r);
     }
 
@@ -36,12 +36,12 @@ TEST(TestUnitFill, SetDirectData)
     dt["col1"] = 3;
 
     {
-        const DataTable::Row r{3, "aa"};
+        const vector<any> r{3, "aa"};
         EXPECT_EQ(dt[0], r);
     }
 
     {
-        const DataTable::Row r{3, "bb"};
+        const vector<any> r{3, "bb"};
         EXPECT_EQ(dt[1], r);
     }
 }
@@ -54,12 +54,12 @@ TEST(TestUnitFill, CopyColumnData)
     dt["col3"] = dt["col1"];
 
     {
-        const DataTable::Row r{1, 2, 1};
+        const vector<any> r{1, 2, 1};
         EXPECT_EQ(dt[0], r);
     }
 
     {
-        const DataTable::Row r{2, 3, 2};
+        const vector<any> r{2, 3, 2};
         EXPECT_EQ(dt[1], r);
     }
 }
@@ -74,12 +74,12 @@ TEST(TestUnitFill, SetCalculatedData)
     cout << dt.toString() << endl;
 
     {
-        const DataTable::Row r{1, 2, 3};
+        const vector<any> r{1, 2, 3};
         EXPECT_EQ(dt[0], r);
     }
 
     {
-        const DataTable::Row r{2, 3, 5};
+        const vector<any> r{2, 3, 5};
         EXPECT_EQ(dt[1], r);
     }
 }
