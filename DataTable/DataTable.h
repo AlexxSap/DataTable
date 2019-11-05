@@ -1,5 +1,4 @@
-#ifndef DATATABLE_H
-#define DATATABLE_H
+#pragma once
 
 #include <cassert>
 #include <unordered_map>
@@ -10,6 +9,20 @@
 #include <iostream>
 
 using namespace std;
+
+template<class T>
+optional<T> toNativeType(any value);
+
+#define SUM(Type, value1, value2) \
+    if(auto val1 = toNativeType<Type>(value1); val1) { \
+        if(auto val2 = toNativeType<Type>(value2); val2) { \
+            return DataTable::Value(val1.value() + val2.value()); }}
+
+#define EQUALS(Type, value1, value2) \
+    if(auto val1 = toNativeType<Type>(value1); val1) { \
+        if(auto val2 = toNativeType<Type>(value2); val2) { \
+            return val1.value() == val2.value(); }}
+
 
 class DataTable
 {
@@ -93,4 +106,3 @@ protected:
     vector<Row> data_;
 };
 
-#endif // DATATABLE_H

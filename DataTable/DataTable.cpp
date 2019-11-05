@@ -145,26 +145,14 @@ void DataTable::addColumn(string column)
 
 
 DataTable::Value::Value(any val)
-    : value_(move(convertChar(move(val))))
+    : value_(convertChar(move(val)))
 {}
 
 bool DataTable::Value::equals(const DataTable::Value &left,
                               const DataTable::Value &right)
 {
-    if(left.type() != right.type())
-    {
-        return false;
-    }
-
-    if(left.type() == typeid(int))
-    {
-        return any_cast<int>(left.value()) == any_cast<int>(right.value());
-    }
-
-    if(left.type() == typeid(string))
-    {
-        return any_cast<string>(left.value()) == any_cast<string>(right.value());
-    }
+    EQUALS(int, left.value(), right.value())
+    EQUALS(string, left.value(), right.value())
 
     return false;
 }
@@ -176,18 +164,8 @@ bool DataTable::Value::operator ==(const DataTable::Value &other) const
 
 DataTable::Value DataTable::Value::operator+(const DataTable::Value &other) const
 {
-    assert(type() == other.type());
-
-    if(type() == typeid(int))
-    {
-        return DataTable::Value(any_cast<int>(value())
-                                + any_cast<int>(other.value()));
-
-    }
-    else if(type() == typeid(string))
-    {
-         return DataTable::Value(any_cast<string>(value()) + any_cast<string>(other.value()));
-    }
+    SUM(int, value(), other.value())
+    SUM(string, value(), other.value())
 
     return DataTable::Value(0);
 }
@@ -204,14 +182,15 @@ const any &DataTable::Value::value() const
 
 string DataTable::Value::toString() const
 {
-    if(type() == typeid(int))
+    if(auto val = toNativeType<int>(value_); val)
     {
-        return to_string(any_cast<int>(value_));
+        return to_string(val.value());
     }
-    else if(type() == typeid(string))
+    else if(auto val = toNativeType<string>(value_); val)
     {
-        return any_cast<string>(value_);
+        return val.value();
     }
+
 
     cout << "not supported " << value_.type().name() << " " << endl;
     return string();
@@ -291,3 +270,13 @@ vector<any> DataTable::Column::data() const
     return d;
 }
 
+
+template<class T>
+optional<T> toNativeType(any value)
+{
+    if(value.type() == typeid(T))
+    {
+        return any_cast<T>(value);
+    }
+    return {};
+}
