@@ -25,7 +25,8 @@ TEST (TestUnitFill, Simple)
         EXPECT_EQ(dt[1], r);
     }
 
-    EXPECT_EQ(dt[0]["col1"], DataTable::Value(1));
+    EXPECT_EQ(DataTable::Value(dt[0]["col1"]),
+            DataTable::Value(1));
 }
 
 TEST(TestUnitFill, SetDirectData)
@@ -71,7 +72,7 @@ TEST(TestUnitFill, SetCalculatedData)
 
     dt["col3"] = dt["col1"] + dt["col2"];
 
-    cout << dt.toString() << endl;
+
 
     {
         const vector<any> r{1, 2, 3};
@@ -81,6 +82,27 @@ TEST(TestUnitFill, SetCalculatedData)
     {
         const vector<any> r{2, 3, 5};
         EXPECT_EQ(dt[1], r);
+    }
+}
+
+TEST(TestUnitCalc, CalcFunctionColumn)
+{
+    DataTable dt{"col1", "col2"};
+    dt.fill({{1, 2}, {2, 3}});
+
+    dt["col3"] = [](DataTable& d) {return d["col1"] + d["col2"]; };
+    cout << dt.toString() << endl;
+
+    {
+        const vector<any> r{1, 2, 3};
+        EXPECT_EQ(dt[0], r);
+    }
+
+    dt[0]["col1"] = 666;
+
+    {
+        const vector<any> r{1, 2, 668};
+        EXPECT_EQ(dt[0], r);
     }
 }
 

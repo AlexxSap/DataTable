@@ -26,7 +26,7 @@ bool DataTable::Row::operator==(const vector<any> &other) const
     });
 }
 
-DataTable::Value DataTable::Row::operator[](string columnName) const
+any& DataTable::Row::operator[](string columnName)
 {
     return owner_->data_[index_][owner_->columnToIndex_.at(columnName)];
 }
@@ -188,6 +188,10 @@ string DataTable::Value::toString() const
     {
         return val.value();
     }
+    else if(auto val = toNativeType<rxFunction>(value_); val)
+    {
+        return "function";
+    }
 
     cout << "not supported " << value_.type().name() << " " << endl;
     return string();
@@ -213,12 +217,19 @@ DataTable::Column::Column(DataTable *owner,
 
 void DataTable::Column::operator=(any value)
 {
-    for_each(owner_->begin(),
-             owner_->end(),
-             [index = index_, &value](vector<any> &row)
+    if(auto func = toNativeType<rxFunction>(value); func)
     {
-        row[index] = value;
-    });
+
+    }
+    else
+    {
+        for_each(owner_->begin(),
+                 owner_->end(),
+                 [index = index_, &value](vector<any> &row)
+        {
+            row[index] = value;
+        });
+    }
 }
 
 void DataTable::Column::operator=(vector<any> columnData)
@@ -276,4 +287,9 @@ optional<T> toNativeType(any value)
         return any_cast<T>(value);
     }
     return {};
+}
+
+void print(string line)
+{
+     cout << line << endl;
 }

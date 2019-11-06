@@ -7,21 +7,29 @@
 #include <algorithm>
 #include <optional>
 #include <iostream>
+#include <functional>
 
 using namespace std;
 
 template<class T>
 optional<T> toNativeType(any value);
 
+void print(string line);
+
+#define CHECK(Type, value1, value2) \
+    if(auto val1 = toNativeType<Type>(value1); val1) \
+    if(auto val2 = toNativeType<Type>(value2); val2)
+
 #define SUM(Type, value1, value2) \
-    if(auto val1 = toNativeType<Type>(value1); val1) { \
-        if(auto val2 = toNativeType<Type>(value2); val2) { \
-            return DataTable::Value(val1.value() + val2.value()); }}
+    CHECK(Type, value1, value2) \
+    return DataTable::Value(val1.value() + val2.value());
 
 #define EQUALS(Type, value1, value2) \
-    if(auto val1 = toNativeType<Type>(value1); val1) { \
-        if(auto val2 = toNativeType<Type>(value2); val2) { \
-            return val1.value() == val2.value(); }}
+    CHECK(Type, value1, value2) \
+    return val1.value() == val2.value();
+
+#define rxFunction function<vector<any>(DataTable&)>
+
 
 
 class DataTable
@@ -66,7 +74,7 @@ public:
                      size_t index);
         bool operator==(Row other) const;
         bool operator==(const vector<any>& other) const;
-        Value operator[](string columnName) const;
+        any& operator[](string columnName);
         Value operator[](const Column& column) const;
         any& operator[](size_t index);
     private:
