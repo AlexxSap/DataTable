@@ -26,19 +26,29 @@ bool DataTable::Row::operator==(const vector<any> &other) const
     });
 }
 
-any& DataTable::Row::operator[](string columnName)
-{
-    return owner_->data_[index_][owner_->columnToIndex_.at(columnName)];
-}
-
 DataTable::Value DataTable::Row::operator[](const DataTable::Column &column) const
 {
     return owner_->data_[index_][column.index()];
 }
 
+any& DataTable::Row::operator[](string columnName)
+{
+    return this->operator[](owner_->columnToIndex_.at(columnName));
+}
+
 any &DataTable::Row::operator[](size_t index)
 {
     return owner_->data_[index_][index];
+}
+
+any DataTable::Row::value(string columnName) const
+{
+    return value(owner_->columnToIndex_.at(columnName));
+}
+
+any DataTable::Row::value(size_t index) const
+{
+
 }
 
 DataTable::DataTable(initializer_list<const char *> columns)
@@ -92,6 +102,12 @@ DataTable::Column DataTable::operator[](string columnName)
 
     addColumn(columnName);
     return DataTable::Column(this, columnSize_ - 1);
+}
+
+any DataTable::value(size_t rowIndex, string columnName) const
+{
+    any cellValue = data_[rowIndex][columnToIndex_.at(columnName)];
+    //return
 }
 
 string DataTable::toString() const
@@ -188,7 +204,7 @@ string DataTable::Value::toString() const
     {
         return val.value();
     }
-    else if(auto val = toNativeType<rxFunction>(value_); val)
+    else if(auto val = toNativeType<deferredFunction>(value_); val)
     {
         return "function";
     }
@@ -217,7 +233,7 @@ DataTable::Column::Column(DataTable *owner,
 
 void DataTable::Column::operator=(any value)
 {
-    if(auto func = toNativeType<rxFunction>(value); func)
+    if(auto func = toNativeType<deferredFunction>(value); func)
     {
 
     }

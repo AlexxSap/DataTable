@@ -85,7 +85,7 @@ TEST(TestUnitFill, SetCalculatedData)
     }
 }
 
-TEST(TestUnitCalc, CalcFunctionColumn)
+TEST(TestUnitCalc, DeferredFunction)
 {
     DataTable dt{"col1", "col2"};
     dt.fill({{1, 2}, {2, 3}});

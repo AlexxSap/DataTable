@@ -28,13 +28,15 @@ void print(string line);
     CHECK(Type, value1, value2) \
     return val1.value() == val2.value();
 
-#define rxFunction function<vector<any>(DataTable&)>
+
 
 
 
 class DataTable
 {
 public:
+    using deferredFunction = function<vector<any>(DataTable&)>;
+
     class Value
     {
     public:
@@ -74,9 +76,12 @@ public:
                      size_t index);
         bool operator==(Row other) const;
         bool operator==(const vector<any>& other) const;
-        any& operator[](string columnName);
         Value operator[](const Column& column) const;
+        any& operator[](string columnName);
         any& operator[](size_t index);
+
+        any value(string columnName)const ;
+        any value(size_t index) const;
     private:
         DataTable *owner_ = nullptr;
         size_t index_;
@@ -98,6 +103,7 @@ public:
 
     Row operator[](size_t rowIndex);
     Column operator[](string columnName);
+    any value(size_t rowIndex, string columnName) const;
 
     string toString() const;
     size_t rowCount() const;
