@@ -11,31 +11,29 @@
 
 using namespace std;
 
+void print(string line);
+
 template<class T>
 optional<T> toNativeType(any value);
 
-void print(string line);
+template<class T>
+optional<pair<T, T>> convert(any left, any right);
 
-#define CHECK(Type, value1, value2) \
-    if(auto val1 = toNativeType<Type>(value1); val1) \
-    if(auto val2 = toNativeType<Type>(value2); val2)
+/// TODO как-то заменить макросы операциями
+#define SUM(Type, left, right) \
+    if(auto values = convert<Type>(left, right); values) return DataTable::Value(values.value().first + values.value().second);
 
-#define SUM(Type, value1, value2) \
-    CHECK(Type, value1, value2) \
-    return DataTable::Value(val1.value() + val2.value());
+#define SUB(Type, left, right) \
+    if(auto values = convert<Type>(left, right); values) return DataTable::Value(values.value().first - values.value().second);
 
-#define EQUALS(Type, value1, value2) \
-    CHECK(Type, value1, value2) \
-    return val1.value() == val2.value();
-
-
-
+#define EQUALS(Type, left, right) \
+    if(auto values = convert<Type>(left, right); values) return values.value().first == values.value().second;
 
 
 class DataTable
 {
 public:
-    using deferredFunction = function<vector<any>(DataTable&)>;
+    using fn = function<vector<any>(DataTable&)>;
 
     class Value
     {
@@ -44,6 +42,7 @@ public:
         static bool equals(const Value &left, const Value &right);
         bool operator == (const Value& other) const;
         Value operator+(const DataTable::Value& other) const;
+        Value operator-(const DataTable::Value& other) const;
         const type_info& type() const;
         const any& value() const;
         string toString() const;
@@ -61,6 +60,7 @@ public:
         void operator= (vector<any> columnData);
         void operator= (const Column& other);
         vector<any> operator+(const DataTable::Column& right) const;
+        vector<any> operator-(const DataTable::Column& right) const;
         size_t index() const;
         vector<any> data() const;
 

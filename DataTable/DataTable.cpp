@@ -1,6 +1,5 @@
 #include "DataTable.h"
 
-
 DataTable::Row::Row(DataTable *owner,
                     size_t index)
     : owner_(owner),
@@ -184,6 +183,13 @@ DataTable::Value DataTable::Value::operator+(const DataTable::Value &other) cons
     return DataTable::Value(0);
 }
 
+DataTable::Value DataTable::Value::operator-(const DataTable::Value &other) const
+{
+    SUB(int, value(), other.value())
+
+    return DataTable::Value(0);
+}
+
 const type_info& DataTable::Value::type() const
 {
     return value_.type();
@@ -204,7 +210,7 @@ string DataTable::Value::toString() const
     {
         return val.value();
     }
-    else if(auto val = toNativeType<deferredFunction>(value_); val)
+    else if(auto val = toNativeType<fn>(value_); val)
     {
         return "function";
     }
@@ -233,7 +239,7 @@ DataTable::Column::Column(DataTable *owner,
 
 void DataTable::Column::operator=(any value)
 {
-    if(auto func = toNativeType<deferredFunction>(value); func)
+    if(auto func = toNativeType<fn>(value); func)
     {
 
     }
@@ -277,6 +283,23 @@ vector<any> DataTable::Column::operator+(const DataTable::Column &right) const
     return result;
 }
 
+vector<any> DataTable::Column::operator-(const DataTable::Column &right) const
+{
+    /// TODO устранить почти полное дублирование с +
+    assert(owner_ == right.owner_);
+
+    vector<any> result;
+    result.reserve(owner_->rowCount());
+    result.resize(owner_->rowCount());
+    for(size_t row = 0; row < owner_->rowCount(); ++row)
+    {
+        result[row] = (owner_->operator[](row)[*this]
+                - owner_->operator[](row)[right]).value();
+    }
+
+    return result;
+}
+
 size_t DataTable::Column::index() const
 {
     return index_;
@@ -301,6 +324,18 @@ optional<T> toNativeType(any value)
     if(value.type() == typeid(T))
     {
         return any_cast<T>(value);
+    }
+    return {};
+}
+
+template<class T>
+optional<pair<T, T>> convert(any left, any right)
+{
+    if(auto leftValue = toNativeType<T>(left),
+            rightValue = toNativeType<T>(right);
+            leftValue && rightValue)
+    {
+        return make_pair(leftValue.value(), rightValue.value());
     }
     return {};
 }

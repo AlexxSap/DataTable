@@ -65,7 +65,7 @@ TEST(TestUnitFill, CopyColumnData)
     }
 }
 
-TEST(TestUnitFill, SetCalculatedData)
+TEST(TestUnitFill, SetSUMCalculatedData)
 {
     DataTable dt{"col1", "col2"};
     dt.fill({{1, 2}, {2, 3}});
@@ -85,7 +85,28 @@ TEST(TestUnitFill, SetCalculatedData)
     }
 }
 
-TEST(TestUnitCalc, DeferredFunction)
+
+TEST(TestUnitFill, SetSUBCalculatedData)
+{
+    DataTable dt{"col1", "col2"};
+    dt.fill({{1, 2}, {2, 3}});
+
+    dt["col3"] = dt["col2"] - dt["col1"];
+
+
+
+    {
+        const vector<any> r{1, 2, 1};
+        EXPECT_EQ(dt[0], r);
+    }
+
+    {
+        const vector<any> r{2, 3, 1};
+        EXPECT_EQ(dt[1], r);
+    }
+}
+
+TEST(TestUnitCalc, Function)
 {
     DataTable dt{"col1", "col2"};
     dt.fill({{1, 2}, {2, 3}});
@@ -99,6 +120,7 @@ TEST(TestUnitCalc, DeferredFunction)
     }
 
     dt[0]["col1"] = 666;
+    //dt.updateColumns("col3");
 
     {
         const vector<any> r{1, 2, 668};
