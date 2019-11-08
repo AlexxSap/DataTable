@@ -111,8 +111,8 @@ TEST(TestUnitCalc, Function)
     DataTable dt{"col1", "col2"};
     dt.fill({{1, 2}, {2, 3}});
 
-    dt["col3"] = [](DataTable& d) {return d["col1"] + d["col2"]; };
-    cout << dt.toString() << endl;
+    function<vector<any>(DataTable&)> f = [](DataTable& d){return d["col1"] + d["col2"]; };
+    dt["col3"] = f;
 
     {
         const vector<any> r{1, 2, 3};
@@ -120,7 +120,8 @@ TEST(TestUnitCalc, Function)
     }
 
     dt[0]["col1"] = 666;
-    //dt.updateColumns("col3");
+
+//    dt.updateColumns("col3");
 
     {
         const vector<any> r{1, 2, 668};

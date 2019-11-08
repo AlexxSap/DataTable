@@ -21,10 +21,10 @@ optional<pair<T, T>> convert(any left, any right);
 
 /// TODO как-то заменить макросы операциями
 #define SUM(Type, left, right) \
-    if(auto values = convert<Type>(left, right); values) return DataTable::Value(values.value().first + values.value().second);
+    if(auto values = convert<Type>(left, right); values) return values.value().first + values.value().second;
 
 #define SUB(Type, left, right) \
-    if(auto values = convert<Type>(left, right); values) return DataTable::Value(values.value().first - values.value().second);
+    if(auto values = convert<Type>(left, right); values) return values.value().first - values.value().second;
 
 #define EQUALS(Type, left, right) \
     if(auto values = convert<Type>(left, right); values) return values.value().first == values.value().second;
@@ -66,10 +66,10 @@ public:
 
     private:
         vector<any> process(const DataTable::Column& right,
-                            string operation) const;
+                            string &&operation) const;
         any process(const Value& right,
                     const Value& left,
-                    function<any(const any&, const any&)> operation) const;
+                    function<any(const Value &, const Value &)> operation) const;
         DataTable *owner_ = nullptr;
         size_t index_;
     };
@@ -116,6 +116,7 @@ public:
 protected:
     void addColumns(initializer_list<const char*> columns);
     void addColumn(string column);
+    void calcFunctionOn(size_t column);
 
     unordered_map<size_t, string> indexToColumn_;
     unordered_map<string, size_t> columnToIndex_;
@@ -123,5 +124,10 @@ protected:
     size_t rowSize_ = 0;
 
     vector<vector<any>> data_;
+    unordered_map<size_t, fn> functions_;
+    unordered_map<string, function<any(const Value &, const Value &)>> operations;
 };
+
+any operator+(const DataTable::Value& left, const DataTable::Value& right);
+any operator-(const DataTable::Value& left, const DataTable::Value& right);
 

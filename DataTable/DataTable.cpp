@@ -47,12 +47,14 @@ any DataTable::Row::value(string columnName) const
 
 any DataTable::Row::value(size_t index) const
 {
-
+    return owner_->data_[index_].at(index);
 }
 
 DataTable::DataTable(initializer_list<const char *> columns)
 {
     addColumns(move(columns));
+    operations.emplace("+", &::operator+);
+    operations.emplace("-", &::operator-);
 }
 
 void DataTable::fill(vector<vector<any> > data)
@@ -106,7 +108,7 @@ DataTable::Column DataTable::operator[](string columnName)
 any DataTable::value(size_t rowIndex, string columnName) const
 {
     any cellValue = data_[rowIndex][columnToIndex_.at(columnName)];
-    //return
+    return cellValue;
 }
 
 string DataTable::toString() const
@@ -154,6 +156,14 @@ void DataTable::addColumn(string column)
         row.emplace_back(any(0));
     }
     columnSize_++;
+}
+
+void DataTable::calcFunctionOn(size_t column)
+{
+    if(auto iter = functions_.find(column); iter != functions_.end())
+    {
+        Column(this, column) = iter->second(*this);
+    }
 }
 
 
@@ -241,7 +251,8 @@ void DataTable::Column::operator=(any value)
 {
     if(auto func = toNativeType<fn>(value); func)
     {
-
+        owner_->functions_.emplace(index_, func.value());
+        owner_->calcFunctionOn(index_);
     }
     else
     {
@@ -277,11 +288,10 @@ vector<any> DataTable::Column::operator-(const DataTable::Column &right) const
 {
     assert(owner_ == right.owner_);
     return process(right, "-");
-    /// TODO устранить почти полное дублирование с +
 }
 
 vector<any> DataTable::Column::process(const DataTable::Column &right,
-                                       string operation) const
+                                       string &&operation) const
 {
     vector<any> result;
     result.reserve(owner_->rowCount());
@@ -289,7 +299,7 @@ vector<any> DataTable::Column::process(const DataTable::Column &right,
     for(size_t row = 0; row < owner_->rowCount(); ++row)
     {
         result[row] = process(owner_->operator[](row)[*this],
-                owner_->operator[](row)[right], oparations.at(operation));
+                owner_->operator[](row)[right], owner_->operations.at(operation));
 
     }
 
@@ -348,4 +358,19 @@ optional<pair<T, T>> convert(any left, any right)
 void print(string line)
 {
      cout << line << endl;
+}
+
+any operator+(const DataTable::Value &left, const DataTable::Value &right)
+{
+    SUM(int, left.value(), right.value())
+    SUM(string, left.value(), right.value())
+
+    return any(0);
+}
+
+any operator-(const DataTable::Value &left, const DataTable::Value &right)
+{
+    SUB(int, left.value(), right.value())
+
+    return any(0);
 }
