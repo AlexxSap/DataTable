@@ -41,8 +41,8 @@ public:
         Value(any val);
         static bool equals(const Value &left, const Value &right);
         bool operator == (const Value& other) const;
-        Value operator+(const DataTable::Value& other) const;
-        Value operator-(const DataTable::Value& other) const;
+//        Value operator+(const DataTable::Value& other) const;
+//        Value operator-(const DataTable::Value& other) const;
         const type_info& type() const;
         const any& value() const;
         string toString() const;
@@ -65,6 +65,11 @@ public:
         vector<any> data() const;
 
     private:
+        vector<any> process(const DataTable::Column& right,
+                            string operation) const;
+        any process(const Value& right,
+                    const Value& left,
+                    function<any(const any&, const any&)> operation) const;
         DataTable *owner_ = nullptr;
         size_t index_;
     };

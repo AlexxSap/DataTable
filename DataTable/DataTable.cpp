@@ -175,20 +175,20 @@ bool DataTable::Value::operator ==(const DataTable::Value &other) const
     return equals(*this, other);
 }
 
-DataTable::Value DataTable::Value::operator+(const DataTable::Value &other) const
-{
-    SUM(int, value(), other.value())
-    SUM(string, value(), other.value())
+//DataTable::Value DataTable::Value::operator+(const DataTable::Value &other) const
+//{
+//    SUM(int, value(), other.value())
+//    SUM(string, value(), other.value())
 
-    return DataTable::Value(0);
-}
+//    return DataTable::Value(0);
+//}
 
-DataTable::Value DataTable::Value::operator-(const DataTable::Value &other) const
-{
-    SUB(int, value(), other.value())
+//DataTable::Value DataTable::Value::operator-(const DataTable::Value &other) const
+//{
+//    SUB(int, value(), other.value())
 
-    return DataTable::Value(0);
-}
+//    return DataTable::Value(0);
+//}
 
 const type_info& DataTable::Value::type() const
 {
@@ -270,34 +270,37 @@ void DataTable::Column::operator=(const DataTable::Column &other)
 vector<any> DataTable::Column::operator+(const DataTable::Column &right) const
 {
     assert(owner_ == right.owner_);
+    return process(right, "+");
+}
 
+vector<any> DataTable::Column::operator-(const DataTable::Column &right) const
+{
+    assert(owner_ == right.owner_);
+    return process(right, "-");
+    /// TODO устранить почти полное дублирование с +
+}
+
+vector<any> DataTable::Column::process(const DataTable::Column &right,
+                                       string operation) const
+{
     vector<any> result;
     result.reserve(owner_->rowCount());
     result.resize(owner_->rowCount());
     for(size_t row = 0; row < owner_->rowCount(); ++row)
     {
-        result[row] = (owner_->operator[](row)[*this]
-                + owner_->operator[](row)[right]).value();
+        result[row] = process(owner_->operator[](row)[*this],
+                owner_->operator[](row)[right], oparations.at(operation));
+
     }
 
     return result;
 }
 
-vector<any> DataTable::Column::operator-(const DataTable::Column &right) const
+any DataTable::Column::process(const DataTable::Value &right,
+                               const DataTable::Value &left,
+                               function<any(const DataTable::Value&, const DataTable::Value&)> operation) const
 {
-    /// TODO устранить почти полное дублирование с +
-    assert(owner_ == right.owner_);
-
-    vector<any> result;
-    result.reserve(owner_->rowCount());
-    result.resize(owner_->rowCount());
-    for(size_t row = 0; row < owner_->rowCount(); ++row)
-    {
-        result[row] = (owner_->operator[](row)[*this]
-                - owner_->operator[](row)[right]).value();
-    }
-
-    return result;
+    return operation(right.value(), left.value());
 }
 
 size_t DataTable::Column::index() const
@@ -316,6 +319,8 @@ vector<any> DataTable::Column::data() const
 
     return d;
 }
+
+
 
 
 template<class T>
