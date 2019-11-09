@@ -121,10 +121,8 @@ TEST(TestUnitCalc, Function)
 
     dt[0]["col1"] = 666;
 
-//    dt.updateColumns("col3");
-
     {
-        const vector<any> r{1, 2, 668};
+        const vector<any> r{666, 2, 668};
         EXPECT_EQ(dt[0], r);
     }
 }

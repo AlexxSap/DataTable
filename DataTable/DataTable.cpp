@@ -37,6 +37,9 @@ any& DataTable::Row::operator[](string columnName)
 
 any &DataTable::Row::operator[](size_t index)
 {
+    /// TODO нужно вызывать этот метод после установки значения по ссылке
+    /// для этого нужен контроль устанавливаемого значения
+    //owner_->checkDependencies(index);
     return owner_->data_[index_][index];
 }
 
@@ -96,13 +99,21 @@ DataTable::Row DataTable::operator[](size_t rowIndex)
 
 DataTable::Column DataTable::operator[](string columnName)
 {
-    if(auto iter = columnToIndex_.find(columnName); iter != columnToIndex_.end())
+    if(dependenciesDetecterMode_)
     {
-        return DataTable::Column(this, iter->second);
+        dependencies_[columnToIndex_.at(columnName)].emplace(currentDetecterColumn_);
+        return DataTable::Column(nullptr, 0);
     }
+    else
+    {
+        if(auto iter = columnToIndex_.find(columnName); iter != columnToIndex_.end())
+        {
+            return DataTable::Column(this, iter->second);
+        }
 
-    addColumn(columnName);
-    return DataTable::Column(this, columnSize_ - 1);
+        addColumn(columnName);
+        return DataTable::Column(this, columnSize_ - 1);
+    }
 }
 
 any DataTable::value(size_t rowIndex, string columnName) const
@@ -138,6 +149,21 @@ size_t DataTable::rowCount() const
     return rowSize_;
 }
 
+void DataTable::checkDependencies(size_t columnIndex)
+{
+    if(auto iter = dependencies_.find(columnIndex); iter != dependencies_.end())
+    {
+        const unordered_set<size_t>& deps = iter->second;
+        for(size_t column : deps)
+        {
+            calcFunctionOn(column);
+           cout << "columnIndex  " << column << endl;
+        }
+
+
+    }
+}
+
 void DataTable::addColumns(initializer_list<const char *> columns)
 {
     for(string column : columns)
@@ -162,10 +188,10 @@ void DataTable::calcFunctionOn(size_t column)
 {
     if(auto iter = functions_.find(column); iter != functions_.end())
     {
+        print("calc");
         Column(this, column) = iter->second(*this);
     }
 }
-
 
 DataTable::Value::Value(any val)
     : value_(convertChar(move(val)))
@@ -184,21 +210,6 @@ bool DataTable::Value::operator ==(const DataTable::Value &other) const
 {
     return equals(*this, other);
 }
-
-//DataTable::Value DataTable::Value::operator+(const DataTable::Value &other) const
-//{
-//    SUM(int, value(), other.value())
-//    SUM(string, value(), other.value())
-
-//    return DataTable::Value(0);
-//}
-
-//DataTable::Value DataTable::Value::operator-(const DataTable::Value &other) const
-//{
-//    SUB(int, value(), other.value())
-
-//    return DataTable::Value(0);
-//}
 
 const type_info& DataTable::Value::type() const
 {
@@ -249,10 +260,23 @@ DataTable::Column::Column(DataTable *owner,
 
 void DataTable::Column::operator=(any value)
 {
+    if(!owner_) return ;
+
     if(auto func = toNativeType<fn>(value); func)
     {
         owner_->functions_.emplace(index_, func.value());
         owner_->calcFunctionOn(index_);
+
+        ColumnDependenciesDetecter(owner_,
+                                   func.value(),
+                                   index_);
+
+        /// TODO можно выполнить одно первое вычисление функтора
+        /// на мини-копии таблицы с констолем используемых колонок.
+        /// эти колонки добавить в связь с колонкой результата.
+        /// И получить таблицу зависимостейю.
+        /// При изменении одной из колонок-источника можно будет узнать,
+        /// какие колонки от неё зависят и пересчитать их.
     }
     else
     {
@@ -267,25 +291,31 @@ void DataTable::Column::operator=(any value)
 
 void DataTable::Column::operator=(vector<any> columnData)
 {
+    if(!owner_) return ;
     for(size_t row = 0; row < owner_->rowCount(); ++row)
     {
+        int v = toNativeType<int>(columnData[row]).value_or(-1);
+        cout << row << " " << v << endl;
         owner_->operator[](row)[index_] = columnData[row];
     }
 }
 
 void DataTable::Column::operator=(const DataTable::Column &other)
 {
+    if(!owner_) return ;
     this->operator=(other.data());
 }
 
 vector<any> DataTable::Column::operator+(const DataTable::Column &right) const
 {
+    if(!owner_) return vector<any>() ;
     assert(owner_ == right.owner_);
     return process(right, "+");
 }
 
 vector<any> DataTable::Column::operator-(const DataTable::Column &right) const
 {
+    if(!owner_) return vector<any>() ;
     assert(owner_ == right.owner_);
     return process(right, "-");
 }
@@ -293,6 +323,7 @@ vector<any> DataTable::Column::operator-(const DataTable::Column &right) const
 vector<any> DataTable::Column::process(const DataTable::Column &right,
                                        string &&operation) const
 {
+    if(!owner_) return vector<any>() ;
     vector<any> result;
     result.reserve(owner_->rowCount());
     result.resize(owner_->rowCount());
@@ -310,6 +341,7 @@ any DataTable::Column::process(const DataTable::Value &right,
                                const DataTable::Value &left,
                                function<any(const DataTable::Value&, const DataTable::Value&)> operation) const
 {
+   if(!owner_) return any();
     return operation(right.value(), left.value());
 }
 
@@ -373,4 +405,15 @@ any operator-(const DataTable::Value &left, const DataTable::Value &right)
     SUB(int, left.value(), right.value())
 
     return any(0);
+}
+
+DataTable::ColumnDependenciesDetecter::ColumnDependenciesDetecter(
+        DataTable *owner,
+        const DataTable::fn &func,
+        size_t index)
+{
+    owner->dependenciesDetecterMode_ = true;
+    owner->currentDetecterColumn_ = index;
+    func(*owner);
+    owner->dependenciesDetecterMode_ = false;
 }

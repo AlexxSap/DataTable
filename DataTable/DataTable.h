@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <any>
 #include <algorithm>
@@ -41,8 +42,6 @@ public:
         Value(any val);
         static bool equals(const Value &left, const Value &right);
         bool operator == (const Value& other) const;
-//        Value operator+(const DataTable::Value& other) const;
-//        Value operator-(const DataTable::Value& other) const;
         const type_info& type() const;
         const any& value() const;
         string toString() const;
@@ -92,8 +91,19 @@ public:
         size_t index_;
     };
 
+private:
+    class ColumnDependenciesDetecter
+    {
+    public:
+        ColumnDependenciesDetecter(DataTable *owner,
+                                   const DataTable::fn& func,
+                                   size_t index);
+    };
+
 public:
+    DataTable() = default;
     explicit DataTable(initializer_list<const char*> columns);
+    virtual ~DataTable() = default;
 
     void fill(vector<vector<any>> data);
     void addRow(vector<any> row);
@@ -107,11 +117,13 @@ public:
     inline const_iterator cend() const;
 
     Row operator[](size_t rowIndex);
-    Column operator[](string columnName);
+    virtual Column operator[](string columnName);
     any value(size_t rowIndex, string columnName) const;
 
     string toString() const;
     size_t rowCount() const;
+
+    void checkDependencies(size_t columnIndex);
 
 protected:
     void addColumns(initializer_list<const char*> columns);
@@ -122,6 +134,10 @@ protected:
     unordered_map<string, size_t> columnToIndex_;
     size_t columnSize_ = 0;
     size_t rowSize_ = 0;
+
+    bool dependenciesDetecterMode_ = false;
+    size_t currentDetecterColumn_ = 0;
+    unordered_map<size_t, unordered_set<size_t>> dependencies_;
 
     vector<vector<any>> data_;
     unordered_map<size_t, fn> functions_;
